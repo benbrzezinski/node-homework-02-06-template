@@ -11,27 +11,23 @@ const schema = require("../../utils/validation");
 
 const router = express.Router();
 
-router.get("/", async (_, res) => {
+router.get("/", async (_, res, next) => {
   try {
     const contacts = await listContacts();
 
-    contacts.length > 0
-      ? res.json({
-          status: 200,
-          data: {
-            contacts,
-          },
-        })
-      : res.status(404).json({
-          status: 404,
-          message: "Not found",
-        });
+    res.json({
+      status: 200,
+      data: {
+        contacts,
+      },
+    });
   } catch (err) {
     console.error(err.message);
+    next(err);
   }
 });
 
-router.get("/:contactId", async (req, res) => {
+router.get("/:contactId", async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const contact = await getContactById(contactId);
@@ -45,10 +41,11 @@ router.get("/:contactId", async (req, res) => {
         })
       : res.status(404).json({
           status: 404,
-          message: "Not found",
+          message: "Not Found",
         });
   } catch (err) {
     console.error(err.message);
+    next(err);
   }
 });
 
@@ -67,12 +64,12 @@ router.post("/", async (req, res) => {
   } catch (err) {
     res.status(400).json({
       status: 400,
-      message: err.details[0].message,
+      message: err.details[0].message ?? "Bad Request",
     });
   }
 });
 
-router.delete("/:contactId", async (req, res) => {
+router.delete("/:contactId", async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const condition = await removeContact(contactId);
@@ -84,10 +81,11 @@ router.delete("/:contactId", async (req, res) => {
         })
       : res.status(404).json({
           status: 404,
-          message: "Not found",
+          message: "Not Found",
         });
   } catch (err) {
     console.error(err.message);
+    next(err);
   }
 });
 
@@ -106,12 +104,12 @@ router.put("/:contactId", async (req, res) => {
         })
       : res.status(404).json({
           status: 404,
-          message: "Not found",
+          message: "Not Found",
         });
   } catch (err) {
     res.status(400).json({
       status: 400,
-      message: err.details[0].message,
+      message: err.details[0].message ?? "Bad Request",
     });
   }
 });
