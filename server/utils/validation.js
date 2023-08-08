@@ -1,4 +1,4 @@
-const Joi = require("joi");
+import Joi from "joi";
 
 const customMessages = {
   name: {
@@ -25,6 +25,7 @@ const schema = Joi.object({
     .trim()
     .required()
     .messages(customMessages.phone),
+  favorite: Joi.boolean(),
 });
 
-module.exports = schema;
+export default schema;
