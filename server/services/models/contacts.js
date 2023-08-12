@@ -4,11 +4,11 @@ const contact = new Schema(
   {
     name: {
       type: String,
-      match: [/^[A-Za-z\s]+$/, "The 'name' field must only contain letters"],
+      match: [/^[A-Za-z\s]+$/, "The name field must only contain letters"],
       minLength: 3,
       maxLength: 30,
       trim: true,
-      required: [true, "The 'name' field is required"],
+      required: [true, "The name field is required"],
     },
     email: {
       type: String,
@@ -17,15 +17,17 @@ const contact = new Schema(
         "Enter a valid e-mail address",
       ],
       trim: true,
-      required: [true, "The 'email' field is required"],
     },
     phone: {
       type: String,
-      match: [/^\d+$/, "The 'phone' field must only contain numbers"],
+      match: [
+        /^[0-9\s+\-()]+$/,
+        "The phone field must only contain numbers, spaces, plus signs, hyphens and parentheses",
+      ],
       minLength: 3,
       maxLength: 16,
       trim: true,
-      required: [true, "The 'phone' field is required"],
+      required: [true, "The phone field is required"],
     },
     favorite: {
       type: Boolean,

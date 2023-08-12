@@ -34,7 +34,8 @@ const removeContact = async id => {
 
 const updateContact = async (id, body) => {
   try {
-    return await Contact.findByIdAndUpdate(id, body, {
+    return Contact.findByIdAndUpdate(id, body, {
+      runValidators: true,
       new: true,
     });
   } catch (err) {

@@ -18,9 +18,9 @@ const get = async (_, res, next) => {
 };
 
 const getById = async (req, res, next) => {
-  const { id } = req.params;
-
   try {
+    const { id } = req.params;
+
     const contact = await service.getContactById(id);
 
     if (!contact) {
@@ -44,10 +44,10 @@ const getById = async (req, res, next) => {
   }
 };
 
-const create = async (req, res) => {
-  const body = req.body;
-
+const create = async (req, res, next) => {
   try {
+    const { body } = req;
+
     const contact = await service.createContact(body);
 
     res.status(201).json({
@@ -58,18 +58,28 @@ const create = async (req, res) => {
       },
     });
   } catch (err) {
+    if (err.name !== "ValidationError") {
+      console.error(err.message);
+      return next(err);
+    }
+
+    const errors = Object.entries(err.errors).reduce(
+      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
+      {}
+    );
+
     res.status(400).json({
       status: 400,
       statusText: "Bad Request",
-      message: err.message,
+      message: errors,
     });
   }
 };
 
 const remove = async (req, res, next) => {
-  const { id } = req.params;
-
   try {
+    const { id } = req.params;
+
     const contact = await service.removeContact(id);
 
     if (!contact) {
@@ -93,22 +103,12 @@ const remove = async (req, res, next) => {
   }
 };
 
-const update = async (req, res) => {
+const update = async (req, res, next) => {
   const { id } = req.params;
-  const body = req.body;
+  const { body } = req;
 
   try {
     const contact = await service.updateContact(id, body);
-
-    if (!contact) {
-      return res.status(404).json({
-        status: 404,
-        statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
-      });
-    }
-
-    await contact.validate();
 
     res.json({
       status: 200,
@@ -118,19 +118,37 @@ const update = async (req, res) => {
       },
     });
   } catch (err) {
+    if (err.path === "_id") {
+      return res.status(404).json({
+        status: 404,
+        statusText: "Not Found",
+        message: `Not found contact by id: ${id}`,
+      });
+    }
+
+    if (err.name !== "ValidationError") {
+      console.error(err.message);
+      return next(err);
+    }
+
+    const errors = Object.entries(err.errors).reduce(
+      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
+      {}
+    );
+
     res.status(400).json({
       status: 400,
       statusText: "Bad Request",
-      message: err.message,
+      message: errors,
     });
   }
 };
 
 const updateFavoriteStatus = async (req, res, next) => {
-  const { id } = req.params;
-  const body = Object.hasOwn(req.body, "favorite") ? req.body : null;
-
   try {
+    const { id } = req.params;
+    const body = Object.hasOwn(req.body, "favorite") ? req.body : null;
+
     if (body) {
       const contact = await service.updateContact(id, {
         favorite: body.favorite,
@@ -155,7 +173,7 @@ const updateFavoriteStatus = async (req, res, next) => {
       res.status(400).json({
         status: 400,
         statusText: "Bad Request",
-        message: "Missing field 'favorite'",
+        message: "Missing field favorite",
       });
     }
   } catch (err) {
@@ -164,7 +182,7 @@ const updateFavoriteStatus = async (req, res, next) => {
   }
 };
 
-const ctrlContacts = {
+const contactsController = {
   get,
   getById,
   create,
@@ -173,4 +191,4 @@ const ctrlContacts = {
   updateFavoriteStatus,
 };
 
-export default ctrlContacts;
+export default contactsController;
