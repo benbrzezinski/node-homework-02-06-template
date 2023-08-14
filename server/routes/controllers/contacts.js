@@ -1,8 +1,10 @@
 import service from "../../services/contacts.js";
 
-const get = async (_, res, next) => {
+const get = async (req, res, next) => {
   try {
-    const contacts = await service.getContacts();
+    const { user } = req;
+
+    const contacts = await service.getContacts(user._id);
 
     res.json({
       status: 200,
@@ -19,15 +21,16 @@ const get = async (_, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
+    const { user } = req;
     const { id } = req.params;
 
-    const contact = await service.getContactById(id);
+    const contact = await service.getContactById(user._id, id);
 
     if (!contact) {
       return res.status(404).json({
         status: 404,
         statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
+        data: { message: `Not found contact by id: ${id}` },
       });
     }
 
@@ -46,9 +49,9 @@ const getById = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const { body } = req;
+    const { body, user } = req;
 
-    const contact = await service.createContact(body);
+    const contact = await service.createContact({ ...body, owner: user._id });
 
     res.status(201).json({
       status: 201,
@@ -71,22 +74,23 @@ const create = async (req, res, next) => {
     res.status(400).json({
       status: 400,
       statusText: "Bad Request",
-      message: errors,
+      data: { message: errors },
     });
   }
 };
 
 const remove = async (req, res, next) => {
   try {
+    const { user } = req;
     const { id } = req.params;
 
-    const contact = await service.removeContact(id);
+    const contact = await service.removeContact(user._id, id);
 
     if (!contact) {
       return res.status(404).json({
         status: 404,
         statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
+        data: { message: `Not found contact by id: ${id}` },
       });
     }
 
@@ -104,11 +108,19 @@ const remove = async (req, res, next) => {
 };
 
 const update = async (req, res, next) => {
+  const { body, user } = req;
   const { id } = req.params;
-  const { body } = req;
 
   try {
-    const contact = await service.updateContact(id, body);
+    const contact = await service.updateContact(user._id, id, body);
+
+    if (!contact) {
+      return res.status(404).json({
+        status: 404,
+        statusText: "Not Found",
+        data: { message: `Not found contact by id: ${id}` },
+      });
+    }
 
     res.json({
       status: 200,
@@ -122,7 +134,7 @@ const update = async (req, res, next) => {
       return res.status(404).json({
         status: 404,
         statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
+        data: { message: `Not found contact by id: ${id}` },
       });
     }
 
@@ -139,18 +151,19 @@ const update = async (req, res, next) => {
     res.status(400).json({
       status: 400,
       statusText: "Bad Request",
-      message: errors,
+      data: { message: errors },
     });
   }
 };
 
 const updateFavoriteStatus = async (req, res, next) => {
   try {
+    const { user } = req;
     const { id } = req.params;
     const body = Object.hasOwn(req.body, "favorite") ? req.body : null;
 
     if (body) {
-      const contact = await service.updateContact(id, {
+      const contact = await service.updateContact(user._id, id, {
         favorite: body.favorite,
       });
 
@@ -158,7 +171,7 @@ const updateFavoriteStatus = async (req, res, next) => {
         return res.status(404).json({
           status: 404,
           statusText: "Not Found",
-          message: `Not found contact by id: ${id}`,
+          data: { message: `Not found contact by id: ${id}` },
         });
       }
 
@@ -173,7 +186,7 @@ const updateFavoriteStatus = async (req, res, next) => {
       res.status(400).json({
         status: 400,
         statusText: "Bad Request",
-        message: "Missing field favorite",
+        data: { message: "Missing field favorite" },
       });
     }
   } catch (err) {

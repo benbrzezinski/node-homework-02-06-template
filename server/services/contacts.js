@@ -1,16 +1,16 @@
 import Contact from "./models/contacts.js";
 
-const getContacts = async () => {
+const getContacts = async userId => {
   try {
-    return await Contact.find();
+    return await Contact.find({ owner: userId }).lean();
   } catch (err) {
     console.error(err.message);
   }
 };
 
-const getContactById = async id => {
+const getContactById = async (userId, id) => {
   try {
-    return await Contact.findById(id);
+    return await Contact.findOne({ owner: userId, _id: id }).lean();
   } catch (err) {
     console.error(err.message);
   }
@@ -24,17 +24,17 @@ const createContact = async body => {
   }
 };
 
-const removeContact = async id => {
+const removeContact = async (userId, id) => {
   try {
-    return await Contact.findByIdAndRemove(id);
+    return await Contact.findOneAndRemove({ owner: userId, _id: id }).lean();
   } catch (err) {
     console.error(err.message);
   }
 };
 
-const updateContact = async (id, body) => {
+const updateContact = async (userId, id, body) => {
   try {
-    return Contact.findByIdAndUpdate(id, body, {
+    return Contact.findOneAndUpdate({ owner: userId, _id: id }, body, {
       runValidators: true,
       new: true,
     });
