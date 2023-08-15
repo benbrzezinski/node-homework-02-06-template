@@ -12,4 +12,6 @@ router.post("/logout", auth, usersController.logout);
 
 router.get("/current", auth, usersController.getCurrent);
 
+router.patch("/subscription", auth, usersController.setSubscription);
+
 export default router;

@@ -2,9 +2,9 @@ import service from "../../services/contacts.js";
 
 const get = async (req, res, next) => {
   try {
-    const { user } = req;
+    const { user, query } = req;
 
-    const contacts = await service.getContacts(user._id);
+    const contacts = await service.getContacts(user._id, query);
 
     res.json({
       status: 200,
@@ -156,7 +156,7 @@ const update = async (req, res, next) => {
   }
 };
 
-const updateFavoriteStatus = async (req, res, next) => {
+const updateFavorite = async (req, res, next) => {
   try {
     const { user } = req;
     const { id } = req.params;
@@ -201,7 +201,7 @@ const contactsController = {
   create,
   remove,
   update,
-  updateFavoriteStatus,
+  updateFavorite,
 };
 
 export default contactsController;

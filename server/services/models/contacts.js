@@ -36,6 +36,7 @@ const contact = new Schema(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { versionKey: false, timestamps: true }

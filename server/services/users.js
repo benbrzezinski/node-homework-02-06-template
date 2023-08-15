@@ -8,6 +8,14 @@ const getUser = async query => {
   }
 };
 
+const getUserWithOrOperator = async query => {
+  try {
+    return await User.findOne({ $or: query }).lean();
+  } catch (err) {
+    console.error(err.message);
+  }
+};
+
 const createUser = async body => {
   try {
     return new User(body);
@@ -29,6 +37,7 @@ const updateUser = async (query, body) => {
 
 const service = {
   getUser,
+  getUserWithOrOperator,
   createUser,
   updateUser,
 };

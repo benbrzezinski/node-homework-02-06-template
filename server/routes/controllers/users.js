@@ -4,17 +4,28 @@ import service from "../../services/users.js";
 
 const register = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
     const body = Object.hasOwn(req.body, "username") ? req.body : null;
 
     if (body) {
-      const isUserExists = await service.getUser({ email });
+      const isUserExists = await service.getUserWithOrOperator([
+        { username },
+        { email },
+      ]);
 
       if (isUserExists) {
         return res.status(409).json({
           status: 409,
           statusText: "Conflict",
-          data: { message: "E-mail is already in use" },
+          data: {
+            message: `${
+              isUserExists.username === username
+                ? "Username"
+                : isUserExists.email === email
+                ? "E-mail"
+                : null
+            } is already in use`,
+          },
         });
       }
 
@@ -22,7 +33,7 @@ const register = async (req, res, next) => {
       await user.validate();
       user.set(
         "password",
-        bCrypt.hashSync(password, bCrypt.genSaltSync(6)),
+        await bCrypt.hash(password, await bCrypt.genSalt(6)),
         String
       );
       await user.save();
@@ -31,7 +42,10 @@ const register = async (req, res, next) => {
         status: 201,
         statusText: "Created",
         data: {
-          user,
+          user: {
+            email: user.email,
+            subscription: user.subscription,
+          },
         },
       });
     } else {
@@ -66,27 +80,36 @@ const login = async (req, res, next) => {
 
     const existingUser = await service.getUser({ email });
 
-    if (!existingUser || !bCrypt.compareSync(password, existingUser.password)) {
+    if (
+      !existingUser ||
+      !(await bCrypt.compare(password, existingUser.password))
+    ) {
       return res.status(401).json({
         status: 401,
         statusText: "Unauthorized",
-        data: { message: "Incorrect login or password" },
+        data: { message: "Incorrect e-mail or password" },
       });
     }
 
     const payload = {
       id: existingUser._id,
-      username: existingUser.username,
     };
 
-    const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(payload, process.env.SECRET_KEY, {
+      expiresIn: "1h",
+    });
+
     const user = await service.updateUser({ email }, { token });
 
     res.json({
       status: 200,
       statusText: "OK",
       data: {
-        user,
+        token,
+        user: {
+          email: user.email,
+          subscription: user.subscription,
+        },
       },
     });
   } catch (err) {
@@ -128,7 +151,10 @@ const getCurrent = async (req, res, next) => {
       status: 200,
       statusText: "OK",
       data: {
-        user,
+        user: {
+          email: user.email,
+          subscription: user.subscription,
+        },
       },
     });
   } catch (err) {
@@ -137,11 +163,58 @@ const getCurrent = async (req, res, next) => {
   }
 };
 
+const setSubscription = async (req, res, next) => {
+  try {
+    const { email } = req.user;
+    const subscription = Object.hasOwn(req.body, "subscription")
+      ? req.body.subscription
+      : null;
+
+    if (subscription) {
+      await service.updateUser({ email }, { subscription });
+
+      res.json({
+        status: 200,
+        statusText: "OK",
+        data: {
+          user: {
+            email,
+            subscription,
+          },
+        },
+      });
+    } else {
+      res.status(400).json({
+        status: 400,
+        statusText: "Bad Request",
+        data: { message: "Missing field subscription" },
+      });
+    }
+  } catch (err) {
+    if (err.name !== "ValidationError") {
+      console.error(err.message);
+      return next(err);
+    }
+
+    const errors = Object.entries(err.errors).reduce(
+      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
+      {}
+    );
+
+    res.status(400).json({
+      status: 400,
+      statusText: "Bad Request",
+      data: { message: errors },
+    });
+  }
+};
+
 const usersController = {
   register,
   login,
   logout,
   getCurrent,
+  setSubscription,
 };
 
 export default usersController;

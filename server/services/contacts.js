@@ -1,8 +1,16 @@
 import Contact from "./models/contacts.js";
 
-const getContacts = async userId => {
+const getContacts = async (userId, { page = 1, limit = 20, favorite }) => {
   try {
-    return await Contact.find({ owner: userId }).lean();
+    return await Contact.find(
+      favorite === "true" || favorite === "false"
+        ? { owner: userId, favorite }
+        : { owner: userId }
+    )
+      .sort({ name: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
   } catch (err) {
     console.error(err.message);
   }

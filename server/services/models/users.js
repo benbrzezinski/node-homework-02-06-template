@@ -7,16 +7,17 @@ const user = new Schema(
       match: [/^[A-Za-z\s]+$/, "Username must only contain letters"],
       minLength: [3, "Username must contain at least 3 characters"],
       maxLength: [25, "Username must contain max 25 characters"],
+      unique: true,
       trim: true,
     },
     email: {
       type: String,
       required: [true, "The e-mail field is required"],
-      unique: true,
       match: [
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
         "Enter a valid e-mail address",
       ],
+      unique: true,
       trim: true,
     },
     password: {
@@ -41,7 +42,11 @@ const user = new Schema(
     },
     subscription: {
       type: String,
-      enum: ["starter", "pro", "business"],
+      enum: {
+        values: ["starter", "pro", "business"],
+        message:
+          "Subscription must be one of these values - [starter, pro, business]",
+      },
       default: "starter",
       trim: true,
     },

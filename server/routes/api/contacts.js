@@ -14,6 +14,6 @@ router.delete("/:id", auth, contactsController.remove);
 
 router.put("/:id", auth, contactsController.update);
 
-router.patch("/:id/favorite", auth, contactsController.updateFavoriteStatus);
+router.patch("/:id/favorite", auth, contactsController.updateFavorite);
 
 export default router;
