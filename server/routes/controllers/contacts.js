@@ -114,14 +114,6 @@ const update = async (req, res, next) => {
   try {
     const contact = await service.updateContact(user._id, id, body);
 
-    if (!contact) {
-      return res.status(404).json({
-        status: 404,
-        statusText: "Not Found",
-        data: { message: `Not found contact by id: ${id}` },
-      });
-    }
-
     res.json({
       status: 200,
       statusText: "OK",
@@ -157,23 +149,16 @@ const update = async (req, res, next) => {
 };
 
 const updateFavorite = async (req, res, next) => {
+  const { user } = req;
+  const { id } = req.params;
+
   try {
-    const { user } = req;
-    const { id } = req.params;
     const body = Object.hasOwn(req.body, "favorite") ? req.body : null;
 
     if (body) {
       const contact = await service.updateContact(user._id, id, {
         favorite: body.favorite,
       });
-
-      if (!contact) {
-        return res.status(404).json({
-          status: 404,
-          statusText: "Not Found",
-          data: { message: `Not found contact by id: ${id}` },
-        });
-      }
 
       res.json({
         status: 200,
@@ -190,6 +175,14 @@ const updateFavorite = async (req, res, next) => {
       });
     }
   } catch (err) {
+    if (err.path === "_id") {
+      return res.status(404).json({
+        status: 404,
+        statusText: "Not Found",
+        data: { message: `Not found contact by id: ${id}` },
+      });
+    }
+
     console.error(err.message);
     next(err);
   }
