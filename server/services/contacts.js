@@ -42,7 +42,7 @@ const removeContact = async (userId, id) => {
 
 const updateContact = async (userId, id, body) => {
   try {
-    return Contact.findOneAndUpdate({ owner: userId, _id: id }, body, {
+    return await Contact.findOneAndUpdate({ owner: userId, _id: id }, body, {
       runValidators: true,
       new: true,
     });

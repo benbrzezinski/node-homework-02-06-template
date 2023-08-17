@@ -1,83 +1,69 @@
 import jwt from "jsonwebtoken";
 import bCrypt from "bcryptjs";
 import service from "../../services/users.js";
+import { handleValidationError } from "../../utils/handleErrors.js";
+import {
+  userRegisterSchema,
+  userLoginSchema,
+  userLogoutSchema,
+  userSubSchema,
+} from "../../utils/validation.js";
 
 const register = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
-    const body = Object.hasOwn(req.body, "username") ? req.body : null;
+    const { body } = req;
+    const { username, email, password } = body;
+    await userRegisterSchema.validateAsync(body);
 
-    if (body) {
-      const isUserExists = await service.getUserWithOrOperator([
-        { username },
-        { email },
-      ]);
+    const isUserExists = await service.getUserWithOrOperator([
+      { username },
+      { email },
+    ]);
 
-      if (isUserExists) {
-        return res.status(409).json({
-          status: 409,
-          statusText: "Conflict",
-          data: {
-            message: `${
-              isUserExists.username === username
-                ? "Username"
-                : isUserExists.email === email
-                ? "E-mail"
-                : null
-            } is already in use`,
-          },
-        });
-      }
-
-      const user = await service.createUser(body);
-      await user.validate();
-      user.set(
-        "password",
-        await bCrypt.hash(password, await bCrypt.genSalt(6)),
-        String
-      );
-      await user.save();
-
-      res.status(201).json({
-        status: 201,
-        statusText: "Created",
+    if (isUserExists) {
+      return res.status(409).json({
+        status: 409,
+        statusText: "Conflict",
         data: {
-          user: {
-            email: user.email,
-            subscription: user.subscription,
-          },
+          message: `${
+            isUserExists.username === username
+              ? "Username"
+              : isUserExists.email === email
+              ? "E-mail"
+              : null
+          } is already in use`,
         },
       });
-    } else {
-      res.status(400).json({
-        status: 400,
-        statusText: "Bad Request",
-        data: { message: "Missing field username" },
-      });
-    }
-  } catch (err) {
-    if (err.name !== "ValidationError") {
-      console.error(err.message);
-      return next(err);
     }
 
-    const errors = Object.entries(err.errors).reduce(
-      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
-      {}
+    const user = await service.createUser(body);
+    await user.validate();
+    user.set(
+      "password",
+      await bCrypt.hash(password, await bCrypt.genSalt(6)),
+      String
     );
+    await user.save();
 
-    res.status(400).json({
-      status: 400,
-      statusText: "Bad Request",
-      data: { message: errors },
+    res.status(201).json({
+      status: 201,
+      statusText: "Created",
+      data: {
+        user: {
+          email: user.email,
+          subscription: user.subscription,
+        },
+      },
     });
+  } catch (err) {
+    handleValidationError(err, res, next);
   }
 };
 
 const login = async (req, res, next) => {
   try {
+    await userLoginSchema.validateAsync(req.body);
     const { email, password } = req.body;
-
     const existingUser = await service.getUser({ email });
 
     if (
@@ -113,32 +99,18 @@ const login = async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.name !== "ValidationError") {
-      console.error(err.message);
-      return next(err);
-    }
-
-    const errors = Object.entries(err.errors).reduce(
-      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
-      {}
-    );
-
-    res.status(400).json({
-      status: 400,
-      statusText: "Bad Request",
-      data: { message: errors },
-    });
+    handleValidationError(err, res, next);
   }
 };
 
 const logout = async (req, res, next) => {
   try {
+    await userLogoutSchema.validateAsync(req.body);
     const { _id } = req.user;
     await service.updateUser({ _id }, { token: null });
     res.status(204).end();
   } catch (err) {
-    console.error(err.message);
-    next(err);
+    handleValidationError(err, res, next);
   }
 };
 
@@ -165,47 +137,23 @@ const getCurrent = async (req, res, next) => {
 
 const setSubscription = async (req, res, next) => {
   try {
+    await userSubSchema.validateAsync(req.body);
     const { email } = req.user;
-    const subscription = Object.hasOwn(req.body, "subscription")
-      ? req.body.subscription
-      : null;
+    const { subscription } = req.body;
+    await service.updateUser({ email }, { subscription });
 
-    if (subscription) {
-      await service.updateUser({ email }, { subscription });
-
-      res.json({
-        status: 200,
-        statusText: "OK",
-        data: {
-          user: {
-            email,
-            subscription,
-          },
+    res.json({
+      status: 200,
+      statusText: "OK",
+      data: {
+        user: {
+          email,
+          subscription,
         },
-      });
-    } else {
-      res.status(400).json({
-        status: 400,
-        statusText: "Bad Request",
-        data: { message: "Missing field subscription" },
-      });
-    }
-  } catch (err) {
-    if (err.name !== "ValidationError") {
-      console.error(err.message);
-      return next(err);
-    }
-
-    const errors = Object.entries(err.errors).reduce(
-      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
-      {}
-    );
-
-    res.status(400).json({
-      status: 400,
-      statusText: "Bad Request",
-      data: { message: errors },
+      },
     });
+  } catch (err) {
+    handleValidationError(err, res, next);
   }
 };
 
