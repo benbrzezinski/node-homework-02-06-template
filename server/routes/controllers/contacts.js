@@ -1,8 +1,14 @@
 import service from "../../services/contacts.js";
+import { contactSchema, contactFavSchema } from "../../utils/validation.js";
+import {
+  handleValidationError,
+  handleNotFoundByIdError,
+} from "../../utils/handleErrors.js";
 
-const get = async (_, res, next) => {
+const get = async (req, res, next) => {
   try {
-    const contacts = await service.getContacts();
+    const { user, query } = req;
+    const contacts = await service.getContacts(user._id, query);
 
     res.json({
       status: 200,
@@ -19,16 +25,15 @@ const get = async (_, res, next) => {
 
 const getById = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const {
+      user,
+      params: { id },
+    } = req;
 
-    const contact = await service.getContactById(id);
+    const contact = await service.getContactById(user._id, id);
 
     if (!contact) {
-      return res.status(404).json({
-        status: 404,
-        statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
-      });
+      return handleNotFoundByIdError(contact, res, id);
     }
 
     res.json({
@@ -46,9 +51,9 @@ const getById = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const { body } = req;
-
-    const contact = await service.createContact(body);
+    const { user, body } = req;
+    await contactSchema.validateAsync(body);
+    const contact = await service.createContact({ ...body, owner: user._id });
 
     res.status(201).json({
       status: 201,
@@ -58,36 +63,21 @@ const create = async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.name !== "ValidationError") {
-      console.error(err.message);
-      return next(err);
-    }
-
-    const errors = Object.entries(err.errors).reduce(
-      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
-      {}
-    );
-
-    res.status(400).json({
-      status: 400,
-      statusText: "Bad Request",
-      message: errors,
-    });
+    handleValidationError(err, res, next);
   }
 };
 
 const remove = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const {
+      user,
+      params: { id },
+    } = req;
 
-    const contact = await service.removeContact(id);
+    const contact = await service.removeContact(user._id, id);
 
     if (!contact) {
-      return res.status(404).json({
-        status: 404,
-        statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
-      });
+      return handleNotFoundByIdError(contact, res, id);
     }
 
     res.json({
@@ -104,11 +94,19 @@ const remove = async (req, res, next) => {
 };
 
 const update = async (req, res, next) => {
-  const { id } = req.params;
-  const { body } = req;
-
   try {
-    const contact = await service.updateContact(id, body);
+    const {
+      user,
+      body,
+      params: { id },
+    } = req;
+
+    await contactSchema.validateAsync(body);
+    const contact = await service.updateContact(user._id, id, body);
+
+    if (!contact) {
+      return handleNotFoundByIdError(contact, res, id);
+    }
 
     res.json({
       status: 200,
@@ -118,67 +116,37 @@ const update = async (req, res, next) => {
       },
     });
   } catch (err) {
-    if (err.path === "_id") {
-      return res.status(404).json({
-        status: 404,
-        statusText: "Not Found",
-        message: `Not found contact by id: ${id}`,
-      });
-    }
-
-    if (err.name !== "ValidationError") {
-      console.error(err.message);
-      return next(err);
-    }
-
-    const errors = Object.entries(err.errors).reduce(
-      (acc, e) => ({ ...acc, [e.at(0)]: e.at(1).message }),
-      {}
-    );
-
-    res.status(400).json({
-      status: 400,
-      statusText: "Bad Request",
-      message: errors,
-    });
+    handleValidationError(err, res, next);
   }
 };
 
-const updateFavoriteStatus = async (req, res, next) => {
+const updateFavorite = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const body = Object.hasOwn(req.body, "favorite") ? req.body : null;
+    const {
+      user,
+      body,
+      params: { id },
+    } = req;
+    const { favorite } = body;
 
-    if (body) {
-      const contact = await service.updateContact(id, {
-        favorite: body.favorite,
-      });
+    await contactFavSchema.validateAsync(body);
+    const contact = await service.updateContact(user._id, id, {
+      favorite,
+    });
 
-      if (!contact) {
-        return res.status(404).json({
-          status: 404,
-          statusText: "Not Found",
-          message: `Not found contact by id: ${id}`,
-        });
-      }
-
-      res.json({
-        status: 200,
-        statusText: "OK",
-        data: {
-          contact,
-        },
-      });
-    } else {
-      res.status(400).json({
-        status: 400,
-        statusText: "Bad Request",
-        message: "Missing field favorite",
-      });
+    if (!contact) {
+      return handleNotFoundByIdError(contact, res, id);
     }
+
+    res.json({
+      status: 200,
+      statusText: "OK",
+      data: {
+        contact,
+      },
+    });
   } catch (err) {
-    console.error(err.message);
-    next(err);
+    handleValidationError(err, res, next);
   }
 };
 
@@ -188,7 +156,7 @@ const contactsController = {
   create,
   remove,
   update,
-  updateFavoriteStatus,
+  updateFavorite,
 };
 
 export default contactsController;
