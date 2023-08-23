@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import fs from "fs/promises";
 import path from "path";
 import service from "../../services/users.js";
+import PORT from "../../server.js";
 import { handleValidationError } from "../../utils/handleErrors.js";
 import {
   userRegisterSchema,
@@ -189,7 +190,7 @@ const updateAvatar = async (req, res, next) => {
       await avatar.writeAsync(path.join(storeAvatars, avatarName));
       await fs.rm(tmpFile);
       const avatarURL = path.join(
-        "http://localhost:3000",
+        `http://localhost:${PORT}`,
         "avatars",
         avatarName
       );
