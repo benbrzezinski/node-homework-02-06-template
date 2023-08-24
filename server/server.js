@@ -1,10 +1,6 @@
 import mongoose from "mongoose";
 import app from "./app.js";
-import {
-  uploadDir,
-  storeAvatars,
-  createFolderIfNotExists,
-} from "./utils/manageUploadFolders.js";
+import { initFolders } from "./utils/manageUploadFolders.js";
 
 const PORT = 3000;
 const SRV_DB = process.env.DB_HOST;
@@ -16,9 +12,8 @@ const connection = mongoose.connect(SRV_DB, {
 
 connection
   .then(() => {
-    app.listen(PORT, () => {
-      createFolderIfNotExists(uploadDir);
-      createFolderIfNotExists(storeAvatars);
+    app.listen(PORT, async () => {
+      await initFolders();
       console.log(`Database connection successful on port ${PORT}`);
     });
   })

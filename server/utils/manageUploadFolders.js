@@ -11,8 +11,17 @@ const isAccessible = async path => {
     .catch(() => false);
 };
 
-export const createFolderIfNotExists = async folder => {
+const createFolderIfNotExists = async folder => {
   if (!(await isAccessible(folder))) {
     await fs.mkdir(folder, { recursive: true });
+  }
+};
+
+export const initFolders = async () => {
+  try {
+    await createFolderIfNotExists(uploadDir);
+    await createFolderIfNotExists(storeAvatars);
+  } catch (err) {
+    console.error(err.message);
   }
 };

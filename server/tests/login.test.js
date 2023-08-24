@@ -1,10 +1,37 @@
 import mongoose from "mongoose";
 import request from "supertest";
 import app from "../app.js";
+import User from "../services/models/users.js";
+import gravatar from "gravatar";
+import { nanoid } from "nanoid";
 
 const SRV_DB = process.env.DB_HOST;
 
-const sampleLogin = async () => {
+const body = {
+  username: "test",
+  email: "test@wp.pl",
+  password: "$2a$10$GDvbb5G27UijVE0q.k4FuOgJM.w2Qcv96rqLt6ovfwa6q3GRD/qCq",
+  avatarURL: gravatar.url("test@wp.pl", { s: "250", r: "pg", d: "mp" }, true),
+  pubId: nanoid(),
+};
+
+const createUser = async body => {
+  try {
+    await User.create(body);
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+const deleteUser = async email => {
+  try {
+    await User.findOneAndRemove({ email }).lean();
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+const sampleSuccessfulLogin = async () => {
   try {
     const res = await request(app).post("/api/users/login").send({
       email: "test@wp.pl",
@@ -17,7 +44,32 @@ const sampleLogin = async () => {
   }
 };
 
-describe("user login", () => {
+const sampleUnsuccessfulLogin = async () => {
+  try {
+    const res = await request(app).post("/api/users/login").send({
+      email: "test1@wp.pl",
+      password: "test12345",
+    });
+
+    return res.body;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+const sampleValidationLoginError = async () => {
+  try {
+    const res = await request(app).post("/api/users/login").send({
+      email: "test@wp.p",
+    });
+
+    return res.body;
+  } catch (err) {
+    throw new Error(err);
+  }
+};
+
+describe("successful user login", () => {
   let res;
 
   beforeAll(async () => {
@@ -26,21 +78,14 @@ describe("user login", () => {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
-    } catch (err) {
-      throw new Error(err);
-    }
-  });
-
-  afterAll(async () => {
-    try {
-      await mongoose.disconnect();
+      await createUser(body);
     } catch (err) {
       throw new Error(err);
     }
   });
 
   beforeEach(async () => {
-    res = await sampleLogin();
+    res = await sampleSuccessfulLogin();
   });
 
   test("should return status 200 OK", () => {
@@ -65,5 +110,59 @@ describe("user login", () => {
 
     expect(user.email).toBeTruthy();
     expect(user.subscription).toBeTruthy();
+  });
+
+  describe("unsuccessful user login", () => {
+    let res;
+
+    beforeEach(async () => {
+      res = await sampleUnsuccessfulLogin();
+    });
+
+    test("should return status 401 Unauthorized", () => {
+      const { status, statusText } = res;
+      expect(status).toBe(401);
+      expect(statusText).toBe("Unauthorized");
+    });
+
+    test("should return message 'Incorrect e-mail or password'", () => {
+      const {
+        data: { message },
+      } = res;
+      expect(message).toBe("Incorrect e-mail or password");
+    });
+  });
+
+  describe("user login error during validation", () => {
+    let res;
+
+    beforeEach(async () => {
+      res = await sampleValidationLoginError();
+    });
+
+    test("should return status 400 Bad Request", () => {
+      const { status, statusText } = res;
+      expect(status).toBe(400);
+      expect(statusText).toBe("Bad Request");
+    });
+
+    test("should return valid error message", () => {
+      const { data } = res;
+
+      expect(data).toMatchObject({
+        message: expect.any(String),
+      });
+
+      expect(data.message).toBeTruthy();
+    });
+  });
+
+  afterAll(async () => {
+    try {
+      await deleteUser(body.email);
+      await mongoose.disconnect();
+    } catch (err) {
+      throw new Error(err);
+    }
   });
 });
