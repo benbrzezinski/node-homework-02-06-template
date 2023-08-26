@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../app.js";
 import User from "../services/models/users.js";
 import gravatar from "gravatar";
+import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 
 const SRV_DB = process.env.DB_HOST;
@@ -10,7 +11,7 @@ const SRV_DB = process.env.DB_HOST;
 const body = {
   username: "test",
   email: "test@wp.pl",
-  password: "$2a$10$GDvbb5G27UijVE0q.k4FuOgJM.w2Qcv96rqLt6ovfwa6q3GRD/qCq",
+  password: bcrypt.hashSync("test1234", bcrypt.genSaltSync()),
   avatarURL: gravatar.url("test@wp.pl", { s: "250", r: "pg", d: "mp" }, true),
   pubId: nanoid(),
 };
