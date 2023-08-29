@@ -33,7 +33,7 @@ const getById = async (req, res, next) => {
     const contact = await service.getContactById(user._id, id);
 
     if (!contact) {
-      return handleNotFoundByIdError(contact, res, id);
+      return handleNotFoundByIdError(res, id);
     }
 
     res.json({
@@ -77,7 +77,7 @@ const remove = async (req, res, next) => {
     const contact = await service.removeContact(user._id, id);
 
     if (!contact) {
-      return handleNotFoundByIdError(contact, res, id);
+      return handleNotFoundByIdError(res, id);
     }
 
     res.json({
@@ -105,7 +105,7 @@ const update = async (req, res, next) => {
     const contact = await service.updateContact(user._id, id, body);
 
     if (!contact) {
-      return handleNotFoundByIdError(contact, res, id);
+      return handleNotFoundByIdError(res, id);
     }
 
     res.json({
@@ -135,7 +135,7 @@ const updateFavorite = async (req, res, next) => {
     });
 
     if (!contact) {
-      return handleNotFoundByIdError(contact, res, id);
+      return handleNotFoundByIdError(res, id);
     }
 
     res.json({

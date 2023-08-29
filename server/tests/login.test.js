@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import request from "supertest";
-import app from "../app.js";
-import User from "../services/models/users.js";
 import gravatar from "gravatar";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
+import app from "../app.js";
+import service from "../services/users.js";
 
 const SRV_DB = process.env.DB_HOST;
 
@@ -14,22 +14,7 @@ const body = {
   password: bcrypt.hashSync("test1234", bcrypt.genSaltSync()),
   avatarURL: gravatar.url("test@wp.pl", { s: "250", r: "pg", d: "mp" }, true),
   pubId: nanoid(),
-};
-
-const createUser = async body => {
-  try {
-    await User.create(body);
-  } catch (err) {
-    throw new Error(err);
-  }
-};
-
-const deleteUser = async email => {
-  try {
-    await User.findOneAndRemove({ email }).lean();
-  } catch (err) {
-    throw new Error(err);
-  }
+  verify: true,
 };
 
 const sampleSuccessfulLogin = async () => {
@@ -79,7 +64,17 @@ describe("successful user login", () => {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
-      await createUser(body);
+      const user = await service.createUser(body);
+      await user.save();
+    } catch (err) {
+      throw new Error(err);
+    }
+  });
+
+  afterAll(async () => {
+    try {
+      await service.deleteUser({ email: body.email });
+      await mongoose.disconnect();
     } catch (err) {
       throw new Error(err);
     }
@@ -156,14 +151,5 @@ describe("successful user login", () => {
 
       expect(data.message).toBeTruthy();
     });
-  });
-
-  afterAll(async () => {
-    try {
-      await deleteUser(body.email);
-      await mongoose.disconnect();
-    } catch (err) {
-      throw new Error(err);
-    }
   });
 });

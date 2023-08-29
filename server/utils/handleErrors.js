@@ -11,12 +11,34 @@ export const handleValidationError = (err, res, next) => {
   });
 };
 
-export const handleNotFoundByIdError = (contact, res, id) => {
-  if (!contact) {
-    res.status(404).json({
-      status: 404,
-      statusText: "Not Found",
-      data: { message: `Not found contact by id: ${id}` },
-    });
-  }
+export const handleNotFoundByIdError = (res, id) => {
+  res.status(404).json({
+    status: 404,
+    statusText: "Not Found",
+    data: { message: `Not found contact by id: ${id}` },
+  });
+};
+
+export const handleNotFoundUserError = res => {
+  res.status(404).json({
+    status: 404,
+    statusText: "Not Found",
+    data: { message: "Verification unsuccessful, user not found" },
+  });
+};
+
+export const handleNotVerifiedEmailError = res => {
+  res.status(400).json({
+    status: 400,
+    statusText: "Bad Request",
+    data: { message: "E-mail is not verified" },
+  });
+};
+
+export const handleUserAlreadyBeenVerifiedError = res => {
+  res.status(400).json({
+    status: 400,
+    statusText: "Bad Request",
+    data: { message: "Verification has already been passed" },
+  });
 };
