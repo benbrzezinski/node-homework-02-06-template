@@ -9,8 +9,11 @@ import service from "../../services/users.js";
 import sendMail from "../../utils/sendMail.js";
 import {
   handleValidationError,
-  handleNotFoundUserError,
-  handleNotVerifiedEmailError,
+  handleUserUnauthorizedError,
+  handleUserConflictError,
+  handleUserNotFoundError,
+  handleUpdateAvatarError,
+  handleEmailNotVerifiedError,
   handleUserAlreadyBeenVerifiedError,
 } from "../../utils/handleErrors.js";
 import {
@@ -35,19 +38,7 @@ const register = async (req, res, next) => {
     ]);
 
     if (isUserExists) {
-      return res.status(409).json({
-        status: 409,
-        statusText: "Conflict",
-        data: {
-          message: `${
-            isUserExists.username === username
-              ? "Username"
-              : isUserExists.email === email
-              ? "E-mail"
-              : null
-          } is already in use`,
-        },
-      });
+      return handleUserConflictError(res, isUserExists, username, email);
     }
 
     const user = await service.createUser(body);
@@ -90,15 +81,11 @@ const login = async (req, res, next) => {
       !existingUser ||
       !(await bCrypt.compare(password, existingUser.password))
     ) {
-      return res.status(401).json({
-        status: 401,
-        statusText: "Unauthorized",
-        data: { message: "Incorrect e-mail or password" },
-      });
+      return handleUserUnauthorizedError(res, "Incorrect e-mail or password");
     }
 
     if (!existingUser.verify) {
-      return handleNotVerifiedEmailError(res);
+      return handleEmailNotVerifiedError(res);
     }
 
     const payload = {
@@ -145,7 +132,7 @@ const reverifyEmail = async (req, res, next) => {
     const user = await service.getUser({ email });
 
     if (!user) {
-      return handleNotFoundUserError(res);
+      return handleUserNotFoundError(res);
     }
 
     if (user.verify) {
@@ -203,7 +190,7 @@ const verifyEmail = async (req, res, next) => {
     );
 
     if (!user) {
-      return handleNotFoundUserError(res);
+      return handleUserNotFoundError(res);
     }
 
     res.json({
@@ -284,11 +271,7 @@ const updateAvatar = async (req, res, next) => {
       });
     } catch (err) {
       await fs.rm(tmpFile);
-      res.status(400).json({
-        status: 400,
-        statusText: "Bad Request",
-        data: { message: err.message },
-      });
+      handleUpdateAvatarError(err, res);
     }
   } catch (err) {
     handleValidationError(err, res, next);

@@ -11,7 +11,7 @@ export const handleValidationError = (err, res, next) => {
   });
 };
 
-export const handleNotFoundByIdError = (res, id) => {
+export const handleContactNotFoundByIdError = (res, id) => {
   res.status(404).json({
     status: 404,
     statusText: "Not Found",
@@ -19,7 +19,33 @@ export const handleNotFoundByIdError = (res, id) => {
   });
 };
 
-export const handleNotFoundUserError = res => {
+export const handleUserUnauthorizedError = (res, message) => {
+  res.status(401).json({
+    status: 401,
+    statusText: "Unauthorized",
+    data: { message },
+  });
+};
+
+export const handleUserConflictError = (res, ...user) => {
+  const [isUserExists, username, email] = user;
+
+  res.status(409).json({
+    status: 409,
+    statusText: "Conflict",
+    data: {
+      message: `${
+        isUserExists.username === username
+          ? "Username"
+          : isUserExists.email === email
+          ? "E-mail"
+          : null
+      } is already in use`,
+    },
+  });
+};
+
+export const handleUserNotFoundError = res => {
   res.status(404).json({
     status: 404,
     statusText: "Not Found",
@@ -27,7 +53,15 @@ export const handleNotFoundUserError = res => {
   });
 };
 
-export const handleNotVerifiedEmailError = res => {
+export const handleUpdateAvatarError = (err, res) => {
+  res.status(400).json({
+    status: 400,
+    statusText: "Bad Request",
+    data: { message: err.message },
+  });
+};
+
+export const handleEmailNotVerifiedError = res => {
   res.status(400).json({
     status: 400,
     statusText: "Bad Request",
